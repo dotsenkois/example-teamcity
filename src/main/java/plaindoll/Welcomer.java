@@ -13,7 +13,4 @@ public class Welcomer{
 	public String sayTranslatedName() {
 		return "Hunter name is Shikari";
 	}
-
-
-	
 }
