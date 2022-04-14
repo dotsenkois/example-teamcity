@@ -26,4 +26,9 @@ public class WelcomerTest {
 	public void welcomerSaysStatus() {
 		assertThat(welcomer.sayStatus(), containsString("status"));
 	}
+	@Test
+	public void sayTranslatedName() {
+		assertThat(welcomer.sayTranslatedName(), containsString("Shikari"));
+	}
+
 }
