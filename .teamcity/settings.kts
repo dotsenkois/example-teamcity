@@ -1,6 +1,8 @@
 import jetbrains.buildServer.configs.kotlin.v2019_2.*
 import jetbrains.buildServer.configs.kotlin.v2019_2.buildSteps.maven
+import jetbrains.buildServer.configs.kotlin.v2019_2.projectFeatures.buildReportTab
 import jetbrains.buildServer.configs.kotlin.v2019_2.triggers.vcs
+import jetbrains.buildServer.configs.kotlin.v2019_2.vcs.GitVcsRoot
 
 /*
 The settings script is an entry point for defining a TeamCity
@@ -27,34 +29,50 @@ To debug in IntelliJ Idea, open the 'Maven Projects' tool window (View
 version = "2021.2"
 
 project {
+    description = "Contains all other projects"
 
-    buildType(Build)
-    buildType(Sample)
-
-    params {
-        text("name", "Alexey", readOnly = true, allowEmpty = true)
-        param("system.sample", "123")
+    features {
+        buildReportTab {
+            id = "PROJECT_EXT_1"
+            title = "Code Coverage"
+            startPage = "coverage.zip!index.html"
+        }
     }
+
+    cleanup {
+        baseRule {
+            preventDependencyCleanup = false
+        }
+    }
+
+    subProject(Netology)
 }
 
-object Build : BuildType({
+
+object Netology : Project({
+    name = "netology"
+
+    vcsRoot(Netology_GitGithubComDotsenkoisExampleTeamcityGitRefsHeadsMaster)
+
+    buildType(Netology_Build)
+
+    params {
+        text("name", "Ilya", readOnly = true, allowEmpty = true)
+    }
+})
+
+object Netology_Build : BuildType({
     name = "Build"
 
     artifactRules = "+:target/*.jar"
 
-    params {
-        param("env.name2", "%name%")
-        password("env.out", "credentialsJSON:12f2c387-f043-4357-8d37-8e00390454d0")
-    }
-
     vcs {
-        root(DslContext.settingsRoot)
+        root(Netology_GitGithubComDotsenkoisExampleTeamcityGitRefsHeadsMaster)
     }
 
     steps {
         maven {
-            name = "run clean test"
-            executionMode = BuildStep.ExecutionMode.ALWAYS
+            name = "mvn clean test"
 
             conditions {
                 doesNotContain("teamcity.build.branch", "master")
@@ -63,41 +81,32 @@ object Build : BuildType({
             runnerArgs = "-Dmaven.test.failure.ignore=true"
         }
         maven {
-            name = "make distrib"
-            executionMode = BuildStep.ExecutionMode.ALWAYS
+            name = "mvn clean deploy"
 
             conditions {
-                contains("teamcity.build.branch", "master")
+                equals("teamcity.build.branch", "master")
             }
             goals = "clean deploy"
             runnerArgs = "-Dmaven.test.failure.ignore=true"
-            userSettingsSelection = "netology"
+            userSettingsSelection = "maven_settings"
         }
     }
 
     triggers {
         vcs {
+            branchFilter = "+:master"
         }
-    }
-
-    requirements {
-        exists("env.JAVA_HOME")
     }
 })
 
-object Sample : BuildType({
-    name = "Sample"
-
-    vcs {
-        root(DslContext.settingsRoot)
+object Netology_GitGithubComDotsenkoisExampleTeamcityGitRefsHeadsMaster : GitVcsRoot({
+    name = "git@github.com:dotsenkois/example-teamcity.git#refs/heads/master"
+    url = "git@github.com:dotsenkois/example-teamcity.git"
+    branch = "refs/heads/master"
+    branchSpec = "refs/heads/*"
+    authMethod = uploadedKey {
+        userName = "git"
+        uploadedKey = "git"
     }
-
-    steps {
-        maven {
-            name = "run clean test"
-            executionMode = BuildStep.ExecutionMode.ALWAYS
-            goals = "clean test"
-            runnerArgs = "-Dmaven.test.failure.ignore=true"
-        }
-    }
+    param("secure:password", "")
 })

@@ -1,1 +1,1 @@
-testing triggers on not master branch
+Testing triggers
